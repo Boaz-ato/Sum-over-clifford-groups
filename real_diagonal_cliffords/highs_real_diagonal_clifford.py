@@ -1,48 +1,51 @@
 import highspy
 import numpy as np
 import time
+from generate_diagonal_components_of_real_diagonal_Clifford_groups import (
+ one_qubit_diagonal_group,
+two_qubit_diagonal_group,
+three_qubit_diagonal_group,
+four_qubit_diagonal_group,
+five_qubit_diagonal_group,
+six_qubit_diagonal_group
+)
 
 
-def get_coefficient_matrix(num_qubits, num_clifford_gates, clifford_file_path):
+def get_coefficient_matrix(num_qubits):
     """
     Generate coefficient matrix for quantum Clifford group optimization.
 
     Args:
         num_qubits: Number of qubits
-        num_clifford_gates: Number of Clifford gates
-        clifford_file_path: Path to the text file containing Clifford group data
 
     Returns:
         Final: Coefficient matrix for the optimization problem
     """
-    clifford_group = np.loadtxt(clifford_file_path, delimiter='\t')
-    clifford_group = clifford_group.reshape((2 * num_clifford_gates, 2 ** num_qubits, 2 ** num_qubits))
 
+    if num_qubits == 1:
+        clifford_group = one_qubit_diagonal_group()
+    elif num_qubits == 2:
+        clifford_group = two_qubit_diagonal_group()
+    elif num_qubits == 3:
+        clifford_group = three_qubit_diagonal_group()
+    elif num_qubits == 4:
+        clifford_group = four_qubit_diagonal_group()
+    elif num_qubits == 5:
+        clifford_group = five_qubit_diagonal_group()
+    elif num_qubits == 6:
+        clifford_group = six_qubit_diagonal_group()
+    else:
+        raise ValueError("Unsupported number of qubits. Supported values are 1 to 6.")
+
+    num_clifford_gates = clifford_group.shape[0]
     matrix_dim = 2 ** num_qubits
-    Final = np.zeros((2 * matrix_dim * matrix_dim, 2 * num_clifford_gates), dtype=float)
+    Final = np.zeros((matrix_dim, 2 * num_clifford_gates), dtype=float)
 
     print('Getting real part of coefficient matrix')
-    for j in range(matrix_dim * matrix_dim):
-        k = j // matrix_dim
-        l = j % matrix_dim
-
-        count = 0
+    for j in range(matrix_dim):
         for i in range(num_clifford_gates):
-            Final[j][count] = clifford_group[2 * i][k][l]
-            Final[j][count + 1] = -clifford_group[2 * i][k][l]
-            count += 2
-
-    print('Getting imaginary part of coefficient matrix')
-    for j in range(matrix_dim * matrix_dim, 2 * matrix_dim * matrix_dim):
-        matrix_index = j - matrix_dim * matrix_dim
-        k = matrix_index // matrix_dim
-        l = matrix_index % matrix_dim
-
-        count = 0
-        for i in range(num_clifford_gates):
-            Final[j][count] = clifford_group[2 * i + 1][k][l]
-            Final[j][count + 1] = -clifford_group[2 * i + 1][k][l]
-            count += 2
+            Final[j][i] = clifford_group[i][j]
+            Final[j][i + num_clifford_gates] = -clifford_group[i][j]
 
     return Final
 
@@ -51,11 +54,6 @@ def create_multi_controlled_z_target_matrix(num_qubits):
     """
     Create target matrix for multi-controlled Z gate decomposition.
     For n qubits: first (n-1) qubits are controls, last qubit is target.
-
-    Examples:
-    - 2 qubits: CZ gate (qubit 1 controls qubit 2)
-    - 3 qubits: CCZ gate (qubits 1,2 control qubit 3)
-    - 4 qubits: CCCZ gate (qubits 1,2,3 control qubit 4)
 
     Args:
         num_qubits: Number of qubits in the system
@@ -66,34 +64,26 @@ def create_multi_controlled_z_target_matrix(num_qubits):
     if num_qubits < 2:
         raise ValueError("Multi-controlled Z gate requires at least 2 qubits")
 
-    dim = 2 ** num_qubits
-    mcz_matrix = np.eye(dim, dtype=complex)
+    cz_target = np.ones(2 ** num_qubits, dtype=float)
+    cz_target[-1] = -1
 
-
-    all_ones_state = (1 << num_qubits) - 1
-    mcz_matrix[all_ones_state, all_ones_state] = -1
-
-    real_part = mcz_matrix.real.flatten()
-    imag_part = mcz_matrix.imag.flatten()
-
-    target_vector = np.concatenate([real_part, imag_part])
-
-    return target_vector
+    return cz_target
 
 
 
 
-def run_highs_solver(num_qubits=2, num_clifford_gates=128, clifford_file_path='Diagonal_Clifford_group_2qubit.txt'):
+def run_highs_solver(num_qubits):
 
 
     h = highspy.Highs()
-    print('Getting coefficient matrix for {} qubits and {} Clifford gates from {}'.format(num_qubits, num_clifford_gates, clifford_file_path))
-    coefficient_matrix = get_coefficient_matrix(num_qubits, num_clifford_gates, clifford_file_path)
+    coefficient_matrix = get_coefficient_matrix(num_qubits)
     print('Done')
     num_vars = coefficient_matrix.shape[1]
     num_rows = coefficient_matrix.shape[0]
 
     inf = highspy.kHighsInf
+    # The constraint matrix is defined with the rows below, but parameters
+    # for an empty (column-wise) matrix must be passed
     cost = np.array([1]*num_vars, dtype=np.double)
     lower = np.array([0]*num_vars, dtype=np.double)
     upper = np.array([inf]*num_vars, dtype=np.double)
@@ -118,10 +108,10 @@ def run_highs_solver(num_qubits=2, num_clifford_gates=128, clifford_file_path='D
     h.run()
     end_time = time.time()
     print('Done solving')
+
     info = h.getInfo()
     model_status = h.getModelStatus()
     print('Model status = ', h.modelStatusToString(model_status))
-    print()
     print('Optimal objective = ', info.objective_function_value)
     print('Optimal objective squared =' , info.objective_function_value ** 2)
     print(f"HiGHS solver execution time: {end_time - start_time:.4f} seconds")
@@ -136,4 +126,11 @@ def run_highs_solver(num_qubits=2, num_clifford_gates=128, clifford_file_path='D
 
 if __name__ == "__main__":
 
-    run_highs_solver(4, 16384, 'Diagonal_Clifford_group_4qubit.txt')
+    #run_highs_solver()
+    #final = get_coefficient_matrix(2, 128, 'Diagonal_Clifford_group_2qubit.txt')
+
+    #print(final)
+    #run_highs_solver(5, 1048576, 'Diagonal_Clifford_group_5qubit.txt')
+    #run_highs_solver(4, 16384, 'Diagonal_Clifford_group_4qubit.txt')
+    #run_highs_solver(3, 512, 'Diagonal_Clifford_group_3qubit.txt')
+    run_highs_solver(4)
