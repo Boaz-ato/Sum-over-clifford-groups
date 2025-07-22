@@ -1,7 +1,7 @@
 import highspy
 import numpy as np
 import time
-from generate_diagonal_components_of_real_diagonal_Clifford_groups import (
+from real_diagonal_cliffords.generate_clifford_groups.real_diagonal_clifford_groups import (
  one_qubit_diagonal_group,
 two_qubit_diagonal_group,
 three_qubit_diagonal_group,
