@@ -1,3 +1,5 @@
 highspy
 numpy
 six
+scalene
+cvxpy

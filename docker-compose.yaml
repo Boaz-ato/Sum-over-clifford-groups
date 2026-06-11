@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  project-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sum-over-cliffords
+    ports:
+      - 87:87
+    volumes:
+      - .:/opt/project
+    tty: true
