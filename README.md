@@ -250,5 +250,5 @@ Solution summary files contain:
 
 This work is documented in the Master's thesis:
 
-> **Boaz Micah**, *"Sum over Clifford Groups"*, Master's Thesis, 2024.
-> Available in `solvers/TFM_BOAZ_MICAH.pdf`.
+> **Boaz Micah**, *"Sum over Clifford Groups"*, Master's Thesis, 2025.
+> Available in `TFM_BOAZ_MICAH.pdf`.
