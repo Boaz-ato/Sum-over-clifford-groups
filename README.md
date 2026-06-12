@@ -65,49 +65,13 @@ The optimal objective value is the *stabilizer extent* of the target gate.
 | CZ           | 2      | 1.0000            | 1.0000      | 1              |
 | CCZ          | 3      | 1.3333            | 1.7778      | 8              |
 | CCCZ         | 4      | 1.5000            | 2.2500      | 6              |
-| CCCCZ        | 5      | ≈ 1.5625          | ≈ 2.4414    | —              |
-| CCCCCZ       | 6      | ≈ 1.6250          | ≈ 2.6406    | 62             |
-| CCZ ⊗ CZ     | 5      | 1.3333            | 1.7778      | —              |
-| CCZ ⊗ CCZ    | 6      | ≈ 1.7778          | ≈ 3.1605    | 64             |
+| CCCCZ        | 5      | ≈ 1.5625          | ≈ 2.507    | 28              |
+| CCCCCZ       | 6      | ≈ 1.6250          | ≈ 2.641    | 62             |
 
-Full solution details (non-zero Clifford elements) are stored in `highs_final_solutions/`.
+
 
 ---
 
-## Repository Structure
-
-```
-Sum-over-clifford-groups/
-│
-├── datasets/                          # Pre-computed Clifford group data
-│   ├── real_diagonals/                # Real diagonal Clifford group elements (1–6 qubits)
-│   │   ├── one_qubit_real_diagonal_clifford_groups.txt
-│   │   ├── two_qubit_real_diagonal_clifford_groups.txt
-│   │   ├── three_qubit_real_diagonal_clifford_groups.txt
-│   │   ├── four_qubit_real_diagonal_clifford_groups.txt
-│   │   ├── five_qubit_real_diagonal_clifford_groups.txt
-│   │   └── six_qubit_real_diagonal_clifford_groups.txt
-│   └── full_cliffords/                # Full (non-diagonal) Clifford group matrices
-│       ├── Clifford_group_1.txt       # 1-qubit: 24 elements
-│       └── Clifford_group_2.txt       # 2-qubit: 11 520 elements
-│
-├── generate_clifford_groups/          # Scripts to generate the datasets above
-│   ├── real_diagonal_clifford_groups.py   # Generates real diagonal subgroup (1–6 qubits)
-│   └── full_clifford_groups.py            # Generates full Clifford group (1–2 qubits, uses qecc)
-│
-├── solvers/                           # LP solver implementations
-│   ├── highs_real_diagonal_clifford.py    # Primary solver — HiGHS simplex (recommended)
-│   ├── cvx_real_diagonal_clifford.py      # Alternative solver — CVXPY / CLARABEL
-│   ├── glpk_real_diagonals.c              # High-performance C solver — GLPK simplex
-│   └── TFM_BOAZ_MICAH.pdf                 # Full thesis / final report
-│
-├── highs_final_solutions/             # Solver output for single gates and tensor products
-├── cvxpy_final_solutions/             # Solver output (CVXPY)
-│
-├── Dockerfile                         # Reproducible environment (Python 3.11 + GLPK)
-├── docker-compose.yaml
-└── requirements.txt
-```
 
 ---
 
@@ -135,7 +99,6 @@ sed -i 's/from collections import Sequence/from collections.abc import Sequence/
 
 # 5. Add the project root to PYTHONPATH
 export PYTHONPATH=$PYTHONPATH:$(pwd)
-# To make this permanent, add the line above to your ~/.zshrc or ~/.bash_profile
 ```
 
 ### Option B — Docker (includes GLPK and all dependencies)
@@ -223,28 +186,6 @@ gcc -O2 -o glpk_solver solvers/glpk_real_diagonals.c -lglpk -lm
 Edit the global variables at the top of `glpk_real_diagonals.c` to select the number of qubits
 and the path to the corresponding dataset file.
 
-### Step 4 — Inspect results
-
-Solution summary files contain:
-- Model status and solver statistics
-- Optimal objective (stabilizer extent) and its square
-- Number of non-zero Clifford group elements in the decomposition
-- The diagonal vectors of the non-zero Clifford elements
-
----
-
-## Dependencies
-
-| Package    | Purpose                                      |
-|------------|----------------------------------------------|
-| `numpy`    | Numerical computations                       |
-| `highspy`  | HiGHS LP solver Python bindings              |
-| `cvxpy`    | Convex optimisation modelling framework      |
-| `qecc`     | Full Clifford group generation (optional)    |
-| `scalene`  | Performance profiling (optional)             |
-| GLPK       | C LP solver (for `glpk_real_diagonals.c`)    |
-
----
 
 ## Reference
 
